@@ -11,11 +11,11 @@ import Shopping from './components/Shopping';
 import RecipeModal from './components/RecipeModal';
 
 const TABS = [
-  { id: 'home', label: 'Inicio', icon: '🏠' },
-  { id: 'fridge', label: 'Heladera', icon: '🧊' },
-  { id: 'recipes', label: 'Recetas', icon: '🍳' },
-  { id: 'plan', label: 'Semana', icon: '📅' },
-  { id: 'shop', label: 'Compras', icon: '🛒' },
+  { id: 'home', label: 'Inicio' },
+  { id: 'fridge', label: 'Heladera' },
+  { id: 'recipes', label: 'Recetas' },
+  { id: 'plan', label: 'Semana' },
+  { id: 'shop', label: 'Compras' },
 ];
 
 export default function App() {
@@ -53,11 +53,16 @@ export default function App() {
         <h1>Cocina Ya </h1>
         <nav className="nav" aria-label="Secciones">
           {TABS.map((t) => (
-            <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}
-              aria-current={tab === t.id ? 'page' : undefined}>
-              <span className="nav-icon" aria-hidden="true">{t.icon}</span>
+            <button
+              key={t.id}
+              className={tab === t.id ? 'on' : ''}
+              onClick={() => setTab(t.id)}
+              aria-current={tab === t.id ? 'page' : undefined}
+            >
               {t.label}
-              {t.id === 'shop' && pendingShop > 0 && <b className="nav-badge">{pendingShop}</b>}
+              {t.id === 'shop' && pendingShop > 0 && (
+                <b className="nav-badge">{pendingShop}</b>
+              )}
             </button>
           ))}
         </nav>

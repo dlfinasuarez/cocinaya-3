@@ -2,7 +2,7 @@ import { DAYS, SHIFTS } from '../constants';
 import { byExpiry, daysLeft, expiryInfo, isExpiring } from '../utils/dates';
 import { capitalize, ingredientLabel, withAvailability } from '../services/recipes';
 import RecipeImg from './RecipeImg';
-// 1. Agregas este único import
+
 import { useTraduccionReceta } from '../hooks/useTraduccion';
 
 const TOTAL_SLOTS = DAYS.length * SHIFTS.length;
