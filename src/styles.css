@@ -1459,5 +1459,8 @@ button:hover {
   background-color: #3f5048;
   color: #FFFFFF;
   transform: translateY(-2px);
+}
+
+.btn, button {
   transition: 0.2s;
 }
