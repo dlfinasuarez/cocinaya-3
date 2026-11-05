@@ -3,6 +3,7 @@ import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useToast } from '../context/ToastContext';
 import { DAYS, SHIFTS, slotKey } from '../constants';
+import RecipeImg from './RecipeImg';
 
 export default function Planner({ uid, plan, loading, onOpenRecipe }) {
   const notify = useToast();
@@ -58,7 +59,7 @@ export default function Planner({ uid, plan, loading, onOpenRecipe }) {
                   {slot ? (
                     <>
                       <button className="slot-main" onClick={() => onOpenRecipe({ id: slot.recipeId, title: slot.title, thumb: slot.thumb })}>
-                        <img src={`${slot.thumb}/preview`} alt="" loading="lazy" />
+                        <RecipeImg src={slot.thumb} />
                         <strong>{slot.title}</strong>
                       </button>
                       <div className="slot-actions">

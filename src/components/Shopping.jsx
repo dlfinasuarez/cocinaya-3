@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useToast } from '../context/ToastContext';
-import { capitalize, getRecipeDetails, keyName, toSpanish, withAvailability } from '../services/recipes';
+import { AISLES, AISLE_ORDER } from '../constants';
+import { buildShoppingList, capitalize, inFridge, isStaple, isTinyId, keyName, toSpanish } from '../services/recipes';
 import { addToShopping } from '../services/shopping';
+
+const aisleIndex = (i) => {
+  const idx = AISLE_ORDER.indexOf(i.aisle || 'other');
+  return idx === -1 ? AISLE_ORDER.length : idx;
+};
 
 export default function Shopping({ uid, items, loading, plan, fridge }) {
   const notify = useToast();
@@ -14,7 +20,8 @@ export default function Shopping({ uid, items, loading, plan, fridge }) {
 
   const pending = items.filter((i) => !i.done);
   const bought = items.filter((i) => i.done);
-  const sorted = [...pending, ...bought].sort((a, b) => a.done - b.done || a.name.localeCompare(b.name));
+  // Pendientes agrupados por pasillo; los comprados al final
+  const sorted = [...items].sort((a, b) => a.done - b.done || aisleIndex(a) - aisleIndex(b) || a.name.localeCompare(b.name));
 
   // CREATE (manual)
   const add = async (ev) => {
@@ -69,19 +76,22 @@ export default function Shopping({ uid, items, loading, plan, fridge }) {
     }
   };
 
-  // Automático: junta lo que falta para todas las recetas de la semana
+  // Automático: Tiny Plates une las recetas de la semana en una sola lista (1 consulta)
+  // y acá le sacamos lo que ya tenés en la heladera.
   const generate = async () => {
-    if (!plan.length) return notify('Primero planificá comidas en la pestaña Semana.', 'error');
+    const ids = [...new Set(plan.map((p) => p.recipeId))].filter(isTinyId);
+    if (!ids.length) return notify('Primero planificá recetas nuevas en la pestaña Semana.', 'error');
     setGenerating(true);
     try {
-      const ids = [...new Set(plan.map((p) => p.recipeId))];
-      const all = await Promise.all(ids.map(getRecipeDetails));
-      const names = all.flatMap((d) => withAvailability(d, fridge).filter((i) => !i.have).map((i) => capitalize(toSpanish(i.name))));
-      const n = await addToShopping(uid, names, items, 'semana');
+      const { items: list } = await buildShoppingList(ids);
+      const needed = list
+        .filter((it) => !isStaple(it.name) && !inFridge(it.name, fridge))
+        .map((it) => ({ name: capitalize(toSpanish(it.name)), detail: it.display, aisle: it.category }));
+      const n = await addToShopping(uid, needed, items, 'semana');
       notify(n ? `${n} ingrediente${n > 1 ? 's' : ''} agregado${n > 1 ? 's' : ''} desde tu semana` : 'No te falta nada para tu semana');
     } catch (err) {
       console.error(err);
-      notify('No se pudo generar la lista desde tu semana.', 'error');
+      notify(err.userMessage || 'No se pudo generar la lista desde tu semana.', 'error');
     } finally {
       setGenerating(false);
     }
@@ -119,15 +129,22 @@ export default function Shopping({ uid, items, loading, plan, fridge }) {
       ) : (
         <>
           <ul className="panel shop-list">
-            {sorted.map((item) => (
-              <li key={item.id} className={item.done ? 'checked' : ''}>
-                <label>
-                  <input type="checkbox" checked={item.done} onChange={() => toggle(item)} />
-                  <span>{item.name}</span>
-                </label>
-                <button className="icon-btn" onClick={() => remove(item)} aria-label={`Quitar ${item.name}`}>✕</button>
-              </li>
-            ))}
+            {sorted.map((item, idx) => {
+              const prev = sorted[idx - 1];
+              const showAisle = !item.done && item.aisle && (!prev || prev.done || prev.aisle !== item.aisle);
+              return (
+                <Fragment key={item.id}>
+                  {showAisle && <li className="aisle">{AISLES[item.aisle] || 'Otros'}</li>}
+                  <li className={item.done ? 'checked' : ''}>
+                    <label>
+                      <input type="checkbox" checked={item.done} onChange={() => toggle(item)} />
+                      <span>{item.name}{item.detail && <small> · {item.detail}</small>}</span>
+                    </label>
+                    <button className="icon-btn" onClick={() => remove(item)} aria-label={`Quitar ${item.name}`}>✕</button>
+                  </li>
+                </Fragment>
+              );
+            })}
           </ul>
           {bought.length > 0 && <button className="btn ghost" onClick={clearBought}>Quitar los {bought.length} comprados</button>}
         </>

@@ -1,6 +1,7 @@
 import { DAYS, SHIFTS } from '../constants';
 import { byExpiry, daysLeft, expiryInfo, isExpiring } from '../utils/dates';
-import { capitalize, toSpanish } from '../services/recipes';
+import { capitalize, ingredientLabel, withAvailability } from '../services/recipes';
+import RecipeImg from './RecipeImg';
 
 const TOTAL_SLOTS = DAYS.length * SHIFTS.length;
 
@@ -12,6 +13,7 @@ export default function Dashboard({ ingredients, plan, loading, suggestion, onOp
   const cooked = plan.filter((p) => p.done).length;
   const today = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
   const { recipe, loading: sugLoading, error: sugError } = suggestion;
+  const used = recipe ? withAvailability(recipe, ingredients).filter((i) => i.have && !i.staple).map(ingredientLabel) : [];
 
   return (
     <section className="dash">
@@ -57,11 +59,11 @@ export default function Dashboard({ ingredients, plan, loading, suggestion, onOp
         <div className="skeleton tall" />
       ) : recipe ? (
         <article className="suggest">
-          <img src={`${recipe.thumb}/preview`} alt={recipe.title} />
+          <RecipeImg src={recipe.image || recipe.thumb} alt={recipe.title} />
           <div className="suggest-body">
             <h3>{recipe.title}</h3>
             <p>
-              Usa {recipe.matches.map((m) => toSpanish(m)).join(', ')} de tu heladera
+              {used.length ? `Usa ${used.join(', ')} de tu heladera` : 'Una receta para esta semana'}
               {expiring.length ? ', priorizando lo que vence antes.' : '.'}
             </p>
             <button className="btn accent" onClick={() => onOpenRecipe(recipe)}>Ver receta</button>
