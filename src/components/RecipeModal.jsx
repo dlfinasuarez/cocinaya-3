@@ -5,11 +5,13 @@ import { getRecipeDetails, getSubstitutions, ingredientLabel, toSpanish, capital
 import { addToShopping } from '../services/shopping';
 import { formatMinutes, formatServings } from '../utils/format';
 import RecipeImg from './RecipeImg';
+import { useTraduccionReceta } from '../hooks/useTraduccion';
 
 const NUTRIENTS = [
   ['calories', 'Calorías'], ['protein', 'Proteínas'], ['carbohydrates', 'Carbohidratos'], ['fat', 'Grasas'],
   ['saturatedFat', 'Grasas saturadas'], ['fiber', 'Fibra'], ['sugar', 'Azúcares'], ['sodium', 'Sodio'],
 ];
+
 
 function Nutrition({ n }) {
   const rows = NUTRIENTS.filter(([k]) => n?.[k]);
@@ -39,6 +41,11 @@ export default function RecipeModal({ recipe, uid, fridge, shopping, onClose }) 
   const [rescaling, setRescaling] = useState(false);
   const [subs, setSubs] = useState(null);
   const [loadingSubs, setLoadingSubs] = useState(false);
+  const recetaBase = details || recipe;
+
+  const recetaSugerida = useTraduccionReceta(recetaBase);
+
+  const receta = recetaSugerida || recetaBase;
 
   useEffect(() => {
     let cancelled = false;
@@ -61,10 +68,12 @@ export default function RecipeModal({ recipe, uid, fridge, shopping, onClose }) 
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
   }, [onClose]);
 
-  const ingredients = details ? withAvailability(details, fridge) : [];
+  const ingredients = receta?.ingredients
+  ? withAvailability(receta, fridge)
+  : [];
   const missing = ingredients.filter((i) => !i.have && !i.optional);
   const stepsDone = Object.values(done).filter(Boolean).length;
-  const steps = details?.steps || [];
+  const steps = receta?.steps || [];
 
   // Escala las porciones y/o convierte las unidades (1 consulta a la API)
   const applyScale = async () => {
@@ -106,17 +115,17 @@ export default function RecipeModal({ recipe, uid, fridge, shopping, onClose }) 
     }
   };
 
-  const d = details;
+  const d = receta;
   const diets = d ? Object.keys(DIET_LABELS).filter((k) => d.dietary?.[k] === true) : [];
   const times = d ? [['Preparación', d.times.prep], ['Cocción', d.times.cook], ['Total', d.times.total]].filter(([, v]) => v) : [];
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={recipe.title} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={receta.title} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
-        <RecipeImg className="modal-img" src={d?.image || recipe.image || recipe.thumb} alt={recipe.title} />
+        <RecipeImg className="modal-img" src={d?.image || recipe.image || recipe.thumb} alt={receta.title} />
         <div className="modal-body">
-          <h2>{recipe.title}</h2>
+          <h2>{receta.title}</h2>
 
           {error && <p className="field-error">{error}</p>}
           {!d && !error && <><div className="skeleton" /><div className="skeleton" /><div className="skeleton tall" /></>}

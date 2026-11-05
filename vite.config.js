@@ -1,19 +1,20 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// En desarrollo, Vite hace de "servidor": agrega la API key de Tiny Plates a cada consulta.
-// En producción lo hace la función api/tinyplates.js de Vercel.
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), ''); // lee TODAS las variables del .env (solo en Node)
+  const env = loadEnv(mode, process.cwd(), '');
+
   return {
     plugins: [react()],
+
     server: {
       proxy: {
         '/api/tinyplates': {
           target: 'https://api.tinyplates.dev',
           changeOrigin: true,
-          headers: { Authorization: `Bearer ${env.TINY_PLATES_API_KEY}` },
-          // /api/tinyplates?path=pantry&x=1  →  /pantry?x=1
+          headers: {
+            Authorization: `Bearer ${env.TINY_PLATES_API_KEY}`
+          },
           rewrite: (p) => {
             const u = new URL(p, 'http://local');
             const path = u.searchParams.get('path');
@@ -21,7 +22,16 @@ export default defineConfig(({ mode }) => {
             return `/${path}${u.search}`;
           },
         },
-      },
-    },
+
+        '/api/deepl': {
+          target: 'https://api-free.deepl.com',
+          changeOrigin: true,
+          rewrite: () => '/v2/translate',
+          headers: {
+            Authorization: `DeepL-Auth-Key ${env.DEEPL_API_KEY}`
+          }
+        }
+      }
+    }
   };
 });

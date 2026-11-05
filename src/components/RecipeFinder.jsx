@@ -7,6 +7,7 @@ import { byExpiry, isExpiring } from '../utils/dates';
 import { formatMinutes } from '../utils/format';
 import { ALLERGEN_LABELS, AVOID_OPTIONS, DAYS, DIET_LABELS, SHIFTS, slotKey } from '../constants';
 import RecipeImg from './RecipeImg';
+import { useTraduccionReceta } from '../hooks/useTraduccion';
 
 const MODES = [
   { id: 'pantry', label: 'Con mi heladera' },
@@ -14,7 +15,11 @@ const MODES = [
   { id: 'popular', label: 'Populares' },
 ];
 
+
 function RecipeCard({ recipe, uid, plan, fridge, onOpen }) {
+  const recetaSugerida = useTraduccionReceta(recipe);
+
+  const receta = recetaSugerida || recipe;
   const notify = useToast();
   const [slot, setSlot] = useState(slotKey(0, 'almuerzo'));
   const [saving, setSaving] = useState(false);
@@ -30,14 +35,14 @@ function RecipeCard({ recipe, uid, plan, fridge, onOpen }) {
     try {
       await setDoc(doc(db, 'users', uid, 'plan', slot), {
         recipeId: recipe.id,
-        title: recipe.title,
+        title: receta.title,
         thumb: recipe.thumb ?? null,
         day: Number(dayIndex),
         shift,
         done: false,
         createdAt: serverTimestamp(),
       });
-      notify(`${recipe.title} agregada a tu semana`);
+      notify(`${receta.title} agregada a tu semana`);
     } catch (err) {
       console.error(err);
       notify('No se pudo agregar la receta a tu semana.', 'error');
@@ -48,11 +53,11 @@ function RecipeCard({ recipe, uid, plan, fridge, onOpen }) {
 
   return (
     <article className="recipe">
-      <button className="recipe-img" onClick={() => onOpen(recipe)} aria-label={`Ver receta de ${recipe.title}`}>
+      <button className="recipe-img" onClick={() => onOpen(recipe)} aria-label={`Ver receta de ${receta.title}`}>
         <RecipeImg src={recipe.thumb} alt="" />
       </button>
       <div className="recipe-body">
-        <h3>{recipe.title}</h3>
+        <h3>{receta.title}</h3>
         <p className="recipe-meta">
           {minutes ? <span>⏱ {formatMinutes(minutes)}</span> : null}
           {recipe.rating?.value ? <span>★ {Math.round(recipe.rating.value * 10) / 10}{recipe.rating.count ? ` (${recipe.rating.count})` : ''}</span> : null}
@@ -68,7 +73,7 @@ function RecipeCard({ recipe, uid, plan, fridge, onOpen }) {
         {recipe.allergens.length > 0 && (
           <p className="allergen-line">Contiene: {recipe.allergens.map((a) => ALLERGEN_LABELS[a] || a).join(', ')}</p>
         )}
-        <button className="btn ghost small" onClick={() => onOpen(recipe)}>Ver receta y modo cocina</button>
+        <button className="btn ghost small" onClick={() => onOpen(receta)}>Ver receta y modo cocina</button>
         <div className="recipe-actions">
           <select value={slot} onChange={(e) => setSlot(e.target.value)} aria-label="Elegir día y turno">
             {DAYS.map((d, i) => SHIFTS.map((s) => {

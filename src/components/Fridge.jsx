@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { CATEGORIES, CATEGORY_ICONS } from '../constants';
 import { byExpiry, expiryInfo, isExpiring, todayISO } from '../utils/dates';
 
+
 const FILTERS = ['Todos', ...CATEGORIES, 'Por vencer'];
 const EMPTY_COPY = {
   Verduras: ['Sin verduras por ahora', 'Una ensalada o un salteado empiezan con una buena verdura.'],

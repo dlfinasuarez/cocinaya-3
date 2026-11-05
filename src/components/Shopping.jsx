@@ -11,6 +11,7 @@ const aisleIndex = (i) => {
   return idx === -1 ? AISLE_ORDER.length : idx;
 };
 
+
 export default function Shopping({ uid, items, loading, plan, fridge }) {
   const notify = useToast();
   const [name, setName] = useState('');
