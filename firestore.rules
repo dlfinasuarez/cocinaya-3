@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Heladera: nombre, cantidad, categoría y vencimiento opcional (texto YYYY-MM-DD)
+    match /users/{uid}/ingredients/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity > 0
+        && request.resource.data.category in ['Verduras', 'Carnes', 'Lácteos', 'Despensa']
+        && (!('expiresAt' in request.resource.data)
+            || request.resource.data.expiresAt == null
+            || (request.resource.data.expiresAt is string && request.resource.data.expiresAt.size() == 10));
+    }
+
+    // Planificador semanal: id del documento = "{dia}_{turno}"
+    match /users/{uid}/plan/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.title is string
+        && request.resource.data.done is bool;
+    }
+
+    // Lista de compras
+    match /users/{uid}/shopping/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.done is bool;
+    }
+
+    // Todo lo demás está bloqueado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
