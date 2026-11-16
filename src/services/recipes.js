@@ -7,25 +7,65 @@ const ENDPOINT = '/api/tinyplates';
 
 // ---------- Diccionario español → nombre canónico en inglés ----------
 const ES_EN = {
+  // Carnes
   pollo: 'chicken', carne: 'beef', vaca: 'beef', res: 'beef', cerdo: 'pork', cordero: 'lamb',
-  jamon: 'ham', pescado: 'fish', salmon: 'salmon', atun: 'tuna', huevo: 'egg', leche: 'milk',
-  queso: 'cheese', manteca: 'butter', crema: 'cream', yogur: 'yogurt', tomate: 'tomato',
-  cebolla: 'onion', papa: 'potato', patata: 'potato', zanahoria: 'carrot', ajo: 'garlic',
+  jamon: 'ham', panceta: 'bacon', bacon: 'bacon', chorizo: 'sausage', salchicha: 'sausage',
+
+  // Pescados y mariscos
+  pescado: 'fish', salmon: 'salmon', atun: 'tuna', merluza: 'hake', camaron: 'shrimp',
+  langostino: 'prawn', calamar: 'squid', pulpo: 'octopus', mejillon: 'mussel', bacalao: 'cod',
+  trucha: 'trout',
+
+  // Huevos y Lácteos
+  huevo: 'egg', huevos: 'egg', clara: 'egg white', yema: 'egg yolk',
+  leche: 'milk', queso: 'cheese', manteca: 'butter', crema: 'cream', yogur: 'yogurt',
+  ricota: 'ricotta', muzzarella: 'mozzarella', parmesano: 'parmesan',
+
+  // Verduras
+  tomate: 'tomato', cebolla: 'onion', papa: 'potato', patata: 'potato', zanahoria: 'carrot', ajo: 'garlic',
   morron: 'bell pepper', pimiento: 'bell pepper', zapallo: 'pumpkin', calabaza: 'pumpkin',
-  zapallito: 'zucchini', berenjena: 'eggplant', pepino: 'cucumber', choclo: 'corn', maiz: 'corn',
-  espinaca: 'spinach', lechuga: 'lettuce', brocoli: 'broccoli', champinon: 'mushroom', hongo: 'mushroom',
-  arroz: 'rice', fideo: 'pasta', pasta: 'pasta', harina: 'flour', azucar: 'sugar', aceite: 'olive oil',
-  pan: 'bread', avena: 'oats', lenteja: 'lentil', garbanzo: 'chickpea', poroto: 'bean',
-  limon: 'lemon', naranja: 'orange', banana: 'banana', manzana: 'apple', frutilla: 'strawberry',
-  palta: 'avocado', mani: 'peanut', nuez: 'walnut', almendra: 'almond', miel: 'honey',
-  mayonesa: 'mayonnaise', mostaza: 'mustard', chocolate: 'chocolate', canela: 'cinnamon',
-  perejil: 'parsley', albahaca: 'basil', oregano: 'oregano', tomillo: 'thyme',
+  zapallito: 'zucchini', calabacin: 'zucchini', berenjena: 'eggplant', pepino: 'cucumber',
+  choclo: 'corn', maiz: 'corn', espinaca: 'spinach', lechuga: 'lettuce', brocoli: 'broccoli',
+  champinon: 'mushroom', hongo: 'mushroom', puerro: 'leek', apio: 'celery', coliflor: 'cauliflower',
+  repollo: 'cabbage', remolacha: 'beetroot', esparrago: 'asparagus',
+
+  // Frutas
+  limon: 'lemon', naranja: 'orange', banana: 'banana', platano: 'banana', manzana: 'apple',
+  frutilla: 'strawberry', fresa: 'strawberry', pera: 'pear', durazno: 'peach', uva: 'grape',
+  palta: 'avocado', aguacate: 'avocado', arandano: 'blueberry', kiwi: 'kiwi', anana: 'pineapple',
+  pina: 'pineapple', mango: 'mango', ciruela: 'plum', sandia: 'watermelon', melon: 'melon',
+  pomelo: 'grapefruit', lima: 'lime',
+
+  // Despensa y Granos
+  arroz: 'rice', fideo: 'pasta', fideos: 'pasta', pasta: 'pasta', harina: 'flour', azucar: 'sugar',
+  aceite: 'olive oil', avena: 'oats', lenteja: 'lentil', lentejas: 'lentil', garbanzo: 'chickpea',
+  garbanzos: 'chickpea', poroto: 'bean', porotos: 'bean', frijoles: 'bean',
+  mani: 'peanut', nuez: 'walnut', nueces: 'walnut', almendra: 'almond', almendras: 'almond',
+  miel: 'honey', chocolate: 'chocolate', cacao: 'cocoa',
+
+  // Panadería
+  pan: 'bread', tostada: 'toast', galletita: 'cookie', masa: 'dough', levadura: 'yeast',
+
+  // Condimentos y salsas
+  sal: 'salt', pimienta: 'pepper', oregano: 'oregano', tomillo: 'thyme', albahaca: 'basil',
+  perejil: 'parsley', romero: 'rosemary', canela: 'cinnamon', comino: 'cumin', pimenton: 'paprika',
+  laurel: 'bay leaf', mayonesa: 'mayonnaise', mostaza: 'mustard', ketchup: 'ketchup',
+  vinagre: 'vinegar', salsa: 'sauce',
+
+  // Bebidas
+  agua: 'water', cafe: 'coffee', te: 'tea', vino: 'wine', cerveza: 'beer', jugo: 'juice',
+
+  // Congelados
+  hielo: 'ice',
 };
+
 const EN_ES = {};
 Object.entries(ES_EN).forEach(([es, en]) => { if (!EN_ES[en]) EN_ES[en] = es; });
 const ACCENTS = {
   morron: 'morrón', limon: 'limón', azucar: 'azúcar', champinon: 'champiñón', brocoli: 'brócoli',
   salmon: 'salmón', atun: 'atún', jamon: 'jamón', maiz: 'maíz', oregano: 'orégano', mani: 'maní',
+  platano: 'plátano', arandano: 'arándano', anana: 'ananá', sandia: 'sandía', cafe: 'café',
+  te: 'té', pimenton: 'pimentón',
 };
 
 const normalize = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -63,7 +103,7 @@ export const isTinyId = (id) => /^[a-f0-9]{24}$/i.test(id || '');
 
 // Marca qué ingredientes de la receta ya están en la heladera
 export function withAvailability(recipe, fridge) {
-  return recipe.ingredients.map((ing) =>
+  return (recipe.ingredients || []).map((ing) =>
     isStaple(ing.name) ? { ...ing, have: true, staple: true } : { ...ing, have: inFridge(ing.name, fridge) });
 }
 // Nombre para mostrar: el de la receta si viene en su idioma, o la traducción
@@ -203,10 +243,28 @@ function boost(list, priority) {
 
 // ---------- Endpoints ----------
 // /pantry: recetas ordenadas por cuánto cubre tu heladera
+// Si language es 'both' (por defecto), consulta es y en en paralelo y las combina deduplicando
 export async function findRecipes(names, opts = {}) {
-  const { language = 'en', maxMissing, without = [], priority = [], limit = 12 } = opts;
+  const { language = 'both', maxMissing, without = [], priority = [], limit = 12 } = opts;
   const terms = [...new Set(names.map(toEnglish))].slice(0, 20);
   if (!terms.length) return [];
+
+  if (language === 'both' || language === 'all') {
+    const [es, en] = await Promise.all([
+      findRecipes(names, { ...opts, language: 'es' }).catch(() => []),
+      findRecipes(names, { ...opts, language: 'en' }).catch(() => []),
+    ]);
+    const seen = new Set();
+    const combined = [];
+    for (const r of [...es, ...en]) {
+      if (!seen.has(r.id)) {
+        seen.add(r.id);
+        combined.push(r);
+      }
+    }
+    return boost(combined, priority);
+  }
+
   const key = ['pantry', language, maxMissing ?? 'x', [...without].sort().join('+'), limit, [...terms].sort().join(',')].join(':');
   const list = await cached(key, async () => {
     const data = await request('pantry', {
@@ -223,7 +281,23 @@ export async function findRecipes(names, opts = {}) {
 }
 
 // /search: búsqueda por significado ("pasta cremosa" encuentra carbonara)
-export function searchRecipes(query, { language = 'en', without = [], limit = 12 } = {}) {
+export async function searchRecipes(query, { language = 'both', without = [], limit = 12 } = {}) {
+  if (language === 'both' || language === 'all') {
+    const [es, en] = await Promise.all([
+      searchRecipes(query, { language: 'es', without, limit }).catch(() => []),
+      searchRecipes(query, { language: 'en', without, limit }).catch(() => []),
+    ]);
+    const seen = new Set();
+    const combined = [];
+    for (const r of [...es, ...en]) {
+      if (!seen.has(r.id)) {
+        seen.add(r.id);
+        combined.push(r);
+      }
+    }
+    return combined;
+  }
+
   const key = ['search', language, [...without].sort().join('+'), limit, normalize(query)].join(':');
   return cached(key, async () => {
     const data = await request('search', { query, limit, language, without: without.join(',') });
@@ -232,7 +306,23 @@ export function searchRecipes(query, { language = 'en', without = [], limit = 12
 }
 
 // /popular: las mejor puntuadas
-export function popularRecipes({ language = 'en', limit = 12 } = {}) {
+export async function popularRecipes({ language = 'both', limit = 12 } = {}) {
+  if (language === 'both' || language === 'all') {
+    const [es, en] = await Promise.all([
+      popularRecipes({ language: 'es', limit }).catch(() => []),
+      popularRecipes({ language: 'en', limit }).catch(() => []),
+    ]);
+    const seen = new Set();
+    const combined = [];
+    for (const r of [...es, ...en]) {
+      if (!seen.has(r.id)) {
+        seen.add(r.id);
+        combined.push(r);
+      }
+    }
+    return combined;
+  }
+
   return cached(`popular:${language}:${limit}`, async () => {
     const data = await request('popular', { language, limit });
     return (data.recipes || []).map(remember);

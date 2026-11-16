@@ -15,7 +15,11 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 60
         && request.resource.data.quantity is number
         && request.resource.data.quantity > 0
-        && request.resource.data.category in ['Verduras', 'Carnes', 'Lácteos', 'Despensa']
+        && request.resource.data.category in [
+          'Verduras', 'Carnes', 'Lácteos', 'Despensa',
+          'Frutas', 'Pescados y mariscos', 'Huevos', 'Panadería',
+          'Congelados', 'Bebidas', 'Condimentos y salsas'
+        ]
         && (!('expiresAt' in request.resource.data)
             || request.resource.data.expiresAt == null
             || (request.resource.data.expiresAt is string && request.resource.data.expiresAt.size() == 10));
