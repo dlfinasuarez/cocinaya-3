@@ -156,6 +156,35 @@ export function Icon({ name, size = 18, className = '', ...props }) {
           <path d="M8 8h8" />
         </svg>
       );
+    case 'grip':
+    case 'drag-handle':
+      return (
+        <svg {...common}>
+          <circle cx="9" cy="6" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="6" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="9" cy="18" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="18" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'edit':
+      return (
+        <svg {...common}>
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      );
+    case 'swap':
+    case 'move':
+      return (
+        <svg {...common}>
+          <polyline points="17 1 21 5 17 9" />
+          <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+          <polyline points="7 23 3 19 7 15" />
+          <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+        </svg>
+      );
     default:
       return null;
   }

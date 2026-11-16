@@ -1336,7 +1336,8 @@ main {
 }
 
 /* ==========================================================================
-   SEMANA / PLANIFICADOR (PLANNER.JSX)
+   SEMANA / PLANIFICADOR INTERACTIVO (PLANNER.JSX)
+   - Casilleros interactivos con Drag & Drop nativo y selección accesible
    ========================================================================== */
 
 .week-grid {
@@ -1374,10 +1375,30 @@ main {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  position: relative;
 }
 
 .shift-slot:last-child {
   border-bottom: none;
+}
+
+/* Feedback visual Drag & Drop */
+.shift-slot.is-drag-target {
+  background: var(--accent-soft) !important;
+  border: 2px dashed var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(196, 78, 50, 0.15);
+}
+
+.shift-slot.is-dragging {
+  opacity: 0.35;
+  transform: scale(0.97);
+}
+
+.shift-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .shift-badge {
@@ -1389,10 +1410,39 @@ main {
   color: var(--ink-faint);
 }
 
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  color: var(--ink-faint);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: all 120ms ease;
+}
+
+.drag-handle:hover {
+  color: var(--ink);
+  background: var(--paper-warm);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
 .slot-inner {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.slot-main-interactive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .slot-recipe-btn {
@@ -1404,6 +1454,7 @@ main {
   padding: 0;
   text-align: left;
   cursor: pointer;
+  flex: 1;
 }
 
 .slot-thumb {
@@ -1415,25 +1466,262 @@ main {
   background: var(--line);
 }
 
+.slot-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .slot-title {
   font-size: 0.95rem;
   line-height: 1.25;
+}
+
+.slot-manual-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--cat-despensa);
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  padding: 1px 5px;
+  border-radius: 3px;
+  width: fit-content;
 }
 
 .slot-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.slot-free-indicator {
-  color: var(--ink-faint);
+.slot-button-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  min-height: 36px;
+  border-radius: 4px;
+  transition: all 120ms ease;
+}
+
+.btn-link-action:hover {
+  color: var(--ink);
+  background: var(--paper-warm);
+}
+
+.slot-free-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-muted);
   font-size: 0.85rem;
-  padding: 4px 0;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms ease;
+  padding: 8px 12px;
+}
+
+.slot-free-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Modales de asignación y movimiento en Planner */
+.assign-modal {
+  max-width: 580px;
+}
+
+.assign-modal-body {
+  gap: 14px;
+}
+
+.assign-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 10px;
+}
+
+.assign-search-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.assign-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.assign-input-group input {
+  flex: 1;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--card);
+}
+
+.assign-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.assign-recipe-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+}
+
+.assign-recipe-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex: none;
+  background: var(--line);
+}
+
+.assign-recipe-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assign-recipe-info strong {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assign-recipe-time {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.assign-empty-hint {
+  font-size: 0.88rem;
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.assign-manual-desc {
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.move-modal {
+  max-width: 600px;
+}
+
+.move-modal-caption {
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+.move-options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-top: 8px;
+}
+
+@media (min-width: 600px) {
+  .move-options-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.move-slot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  cursor: pointer;
+  transition: all 120ms ease;
+  gap: 3px;
+}
+
+.move-slot-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.move-slot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.move-slot-shift {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.move-slot-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.move-slot-btn.is-empty-slot .move-slot-status {
+  color: var(--badge-ok);
 }
 
 /* ==========================================================================
    LISTA DE COMPRAS (SHOPPING.JSX)
+   - Microinteracción de completado suave en 3 fases
    ========================================================================== */
 
 .shop-header-editorial {
@@ -1489,10 +1777,63 @@ main {
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
   gap: 8px;
+  background: var(--card);
+  max-height: 80px;
+  overflow: hidden;
+  transition: max-height 360ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding 360ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 300ms ease,
+              transform 340ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center right;
 }
 
 .shop-item:last-child {
   border-bottom: none;
+}
+
+/* Microinteracción Fase 1: Confirmación visual con tachado animado y check verde */
+.shop-item.is-completing .check-box {
+  background: var(--badge-ok) !important;
+  border-color: var(--badge-ok) !important;
+  color: #FFFFFF !important;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.shop-item.is-completing .item-title {
+  position: relative;
+  color: var(--ink-faint);
+  transition: color 250ms ease;
+}
+
+.shop-item.is-completing .item-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1.5px;
+  background: var(--ink-muted);
+  transform-origin: left;
+  animation: strikethrough 240ms ease-out forwards;
+}
+
+@keyframes strikethrough {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Microinteracción Fase 2: Salida suave hacia la derecha con colapso vertical */
+.shop-item.is-sliding-out {
+  transform: translateX(100%);
+  opacity: 0;
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom-color: transparent !important;
 }
 
 .shop-item.is-bought .item-title {

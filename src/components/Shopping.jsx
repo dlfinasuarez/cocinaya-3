@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useRef, useEffect } from 'react';
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useToast } from '../context/ToastContext';
@@ -19,7 +19,19 @@ export default function Shopping({ uid, items = [], loading, plan = [], fridge =
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const pending = items.filter((i) => !i.done);
+  // Estados de animación para microinteracción de completado
+  // animatingMap: { [itemId]: 'completing' (fase 1) | 'sliding' (fase 2) }
+  const [animatingMap, setAnimatingMap] = useState({});
+  const timersRef = useRef({});
+
+  // Limpiar temporizadores activos al desmontar
+  useEffect(() => {
+    return () => {
+      Object.values(timersRef.current).forEach((t) => clearTimeout(t));
+    };
+  }, []);
+
+  const pending = items.filter((i) => !i.done && !animatingMap[i.id]);
   const bought = items.filter((i) => i.done);
 
   // Pendientes agrupados por pasillo; comprados al final
@@ -54,18 +66,58 @@ export default function Shopping({ uid, items = [], loading, plan = [], fridge =
     }
   };
 
-  // UPDATE: tachar / destachar
-  const toggle = async (item) => {
-    try {
-      await updateDoc(doc(db, 'users', uid, 'shopping', item.id), { done: !item.done });
-    } catch (err) {
-      console.error(err);
-      notify(`No se pudo actualizar ${item.name}.`, 'error');
+  // MICROINTERACCIÓN DE COMPLETADO Y ELIMINACIÓN SUAVE EN 3 FASES
+  const handleCheck = (item) => {
+    const id = item.id;
+
+    // Si ya está en proceso de animación, el usuario desmarcó para CANCELAR la eliminación
+    if (animatingMap[id]) {
+      if (timersRef.current[id]) {
+        clearTimeout(timersRef.current[id]);
+        delete timersRef.current[id];
+      }
+      setAnimatingMap((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      return;
     }
+
+    // FASE 1: Confirmación visual inmediata (~0 a 280ms)
+    // Checkbox relleno en verde, tachado animado y ligera opacidad
+    setAnimatingMap((prev) => ({ ...prev, [id]: 'completing' }));
+
+    // FASE 2: Salida suave (~280 a 680ms)
+    // Deslizamiento lateral a la derecha y colapso vertical suave
+    timersRef.current[id] = setTimeout(() => {
+      setAnimatingMap((prev) => ({ ...prev, [id]: 'sliding' }));
+
+      // FASE 3: Persistencia en Firestore al concluir la animación (~680ms)
+      timersRef.current[id] = setTimeout(async () => {
+        try {
+          await deleteDoc(doc(db, 'users', uid, 'shopping', id));
+        } catch (err) {
+          console.error(err);
+          notify(`No se pudo eliminar ${item.name}.`, 'error');
+        } finally {
+          delete timersRef.current[id];
+          setAnimatingMap((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        }
+      }, 380);
+    }, 280);
   };
 
-  // DELETE con Deshacer
+  // DELETE manual con botón de tacho (incluye toast con Deshacer)
   const remove = async (item) => {
+    if (timersRef.current[item.id]) {
+      clearTimeout(timersRef.current[item.id]);
+      delete timersRef.current[item.id];
+    }
     const backupItem = { ...item };
     try {
       await deleteDoc(doc(db, 'users', uid, 'shopping', item.id));
@@ -90,7 +142,7 @@ export default function Shopping({ uid, items = [], loading, plan = [], fridge =
     }
   };
 
-  // Limpiar comprados (con confirmación destructiva preventiva)
+  // Limpiar comprados
   const clearBought = async () => {
     if (!bought.length) return;
     const ok = window.confirm(
@@ -145,8 +197,8 @@ export default function Shopping({ uid, items = [], loading, plan = [], fridge =
         <div className="shop-header-title">
           <h2>Lista de compras</h2>
           <p>
-            {items.length
-              ? `${bought.length} de ${items.length} productos marcados como comprados.`
+            {pending.length
+              ? `${pending.length} producto${pending.length === 1 ? '' : 's'} por comprar. Marcá con el check para completar.`
               : 'Lo que te falta en casa para cocinar tus recetas.'}
           </p>
         </div>
@@ -206,6 +258,11 @@ export default function Shopping({ uid, items = [], loading, plan = [], fridge =
               const prev = sorted[idx - 1];
               const showAisle =
                 !item.done && item.aisle && (!prev || prev.done || prev.aisle !== item.aisle);
+              const animPhase = animatingMap[item.id];
+              const isChecked = Boolean(item.done || animPhase);
+              const isCompleting = animPhase === 'completing';
+              const isSliding = animPhase === 'sliding';
+
               return (
                 <Fragment key={item.id}>
                   {showAisle && (
@@ -213,12 +270,16 @@ export default function Shopping({ uid, items = [], loading, plan = [], fridge =
                       <span className="aisle-title">{AISLES[item.aisle] || 'Otros'}</span>
                     </li>
                   )}
-                  <li className={`shop-item ${item.done ? 'is-bought' : ''}`}>
+                  <li
+                    className={`shop-item ${item.done ? 'is-bought' : ''} ${
+                      isCompleting ? 'is-completing' : ''
+                    } ${isSliding ? 'is-sliding-out' : ''}`}
+                  >
                     <label className="checkbox-custom shop-check">
                       <input
                         type="checkbox"
-                        checked={Boolean(item.done)}
-                        onChange={() => toggle(item)}
+                        checked={isChecked}
+                        onChange={() => handleCheck(item)}
                       />
                       <span className="check-box" aria-hidden="true">
                         <Icon name="check" size={12} />
