@@ -1,5 +1,4 @@
-# SmartPantry & Planner
-
+# Cocina Ya
 SPA en React + Vite con Firebase (Anonymous Auth + Cloud Firestore), desplegada en Vercel.
 Permite cargar los ingredientes de la heladera, buscar recetas (TheMealDB) y planificar la semana.
 

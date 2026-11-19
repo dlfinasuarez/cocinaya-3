@@ -37,11 +37,32 @@ const ES_EN = {
   pomelo: 'grapefruit', lima: 'lime',
 
   // Despensa y Granos
-  arroz: 'rice', fideo: 'pasta', fideos: 'pasta', pasta: 'pasta', harina: 'flour', azucar: 'sugar',
+  arroz: 'rice', fideo: 'pasta', fideos: 'pasta', pasta: 'pasta', pastas: 'pasta',
+  tallarines: 'noodles', spaghetti: 'pasta', espaguetis: 'pasta', canelones: 'cannelloni',
+  lasana: 'lasagna', lasagne: 'lasagna', ñoquis: 'gnocchi', noquis: 'gnocchi',
+  harina: 'flour', azucar: 'sugar',
   aceite: 'olive oil', avena: 'oats', lenteja: 'lentil', lentejas: 'lentil', garbanzo: 'chickpea',
   garbanzos: 'chickpea', poroto: 'bean', porotos: 'bean', frijoles: 'bean',
   mani: 'peanut', nuez: 'walnut', nueces: 'walnut', almendra: 'almond', almendras: 'almond',
   miel: 'honey', chocolate: 'chocolate', cacao: 'cocoa',
+
+  // Platos, preparaciones y términos culinarios
+  ensalada: 'salad', ensaladas: 'salad',
+  pizza: 'pizza', pizzas: 'pizza',
+  sopa: 'soup', sopas: 'soup', caldo: 'broth',
+  guiso: 'stew', guisos: 'stew', estofado: 'stew',
+  tarta: 'pie', tartas: 'pie', pastel: 'pie',
+  torta: 'cake', tortas: 'cake',
+  hamburguesa: 'burger', hamburguesas: 'burger', burger: 'burger',
+  sandwich: 'sandwich', sanguche: 'sandwich',
+  panqueque: 'pancake', panqueques: 'pancakes',
+  milanesa: 'schnitzel', milanesas: 'schnitzel',
+  pure: 'mashed potatoes', flan: 'flan', postre: 'dessert',
+  empanada: 'empanada', empanadas: 'empanadas',
+  risotto: 'risotto', tacos: 'tacos', taco: 'taco',
+  asado: 'roast', asada: 'roasted', 'al horno': 'baked', frito: 'fried', frita: 'fried',
+  salteado: 'stir fry', salteada: 'stir fry',
+  crema: 'cream', salsa: 'sauce', queso: 'cheese',
 
   // Panadería
   pan: 'bread', tostada: 'toast', galletita: 'cookie', masa: 'dough', levadura: 'yeast',
@@ -84,6 +105,43 @@ export function toEnglish(name) {
 export function toSpanish(en) {
   const es = EN_ES[normalize(en)] || EN_ES[keyName(en)];
   return es ? ACCENTS[es] || es : en.toLowerCase();
+}
+
+// Traduce términos y combinaciones de búsqueda (ej: "fideos" -> "pasta", "sopa de pollo" -> "chicken soup")
+export function translateSearchQuery(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const clean = normalize(raw);
+  if (ES_EN[clean]) return ES_EN[clean];
+  if (ES_EN[keyName(clean)]) return ES_EN[keyName(clean)];
+
+  const tokens = clean.split(/\s+/).filter(Boolean);
+  const STOP_WORDS = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'en', 'para', 'al']);
+  const translated = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    const w = tokens[i];
+    if (i < tokens.length - 1) {
+      const pair = `${w} ${tokens[i + 1]}`;
+      if (ES_EN[pair]) {
+        translated.push(ES_EN[pair]);
+        i++;
+        continue;
+      }
+    }
+    if (w === 'con') {
+      translated.push('with');
+      continue;
+    }
+    if (w === 'y') {
+      translated.push('and');
+      continue;
+    }
+    if (STOP_WORDS.has(w)) continue;
+    const match = ES_EN[w] || ES_EN[keyName(w)];
+    translated.push(match || w);
+  }
+
+  return translated.join(' ').trim();
 }
 
 // ---------- Comparar ingredientes: "red bell pepper" contiene "bell pepper" ----------
@@ -158,6 +216,8 @@ function readCache(key) {
 }
 function writeCache(key, value) {
   mem.set(key, value);
+  // No persistimos resultados vacíos en localStorage para evitar fijar falsos negativos por fallas transitorias
+  if (Array.isArray(value) && value.length === 0) return;
   const payload = JSON.stringify({ t: Date.now(), v: value });
   try {
     localStorage.setItem(PREFIX + key, payload);
@@ -282,25 +342,51 @@ export async function findRecipes(names, opts = {}) {
 
 // /search: búsqueda por significado ("pasta cremosa" encuentra carbonara)
 export async function searchRecipes(query, { language = 'both', without = [], limit = 12 } = {}) {
+  const cleanQuery = (query || '').trim();
+  if (!cleanQuery) return [];
+
   if (language === 'both' || language === 'all') {
-    const [es, en] = await Promise.all([
-      searchRecipes(query, { language: 'es', without, limit }).catch(() => []),
-      searchRecipes(query, { language: 'en', without, limit }).catch(() => []),
-    ]);
+    const enQuery = translateSearchQuery(cleanQuery) || cleanQuery;
+    const queries = [
+      { q: cleanQuery, lang: 'es' },
+      { q: enQuery, lang: 'en' },
+    ];
+    if (enQuery.toLowerCase() !== cleanQuery.toLowerCase()) {
+      queries.push({ q: cleanQuery, lang: 'en' });
+    }
+
+    const results = await Promise.all(
+      queries.map(async ({ q, lang }) => {
+        try {
+          const list = await searchRecipes(q, { language: lang, without, limit });
+          return { ok: true, list };
+        } catch (err) {
+          return { ok: false, err, list: [] };
+        }
+      })
+    );
+
+    const allFailed = results.every((r) => !r.ok);
+    if (allFailed && results[0]?.err) {
+      throw results[0].err;
+    }
+
     const seen = new Set();
     const combined = [];
-    for (const r of [...es, ...en]) {
-      if (!seen.has(r.id)) {
-        seen.add(r.id);
-        combined.push(r);
+    for (const r of results) {
+      for (const recipe of r.list) {
+        if (!seen.has(recipe.id)) {
+          seen.add(recipe.id);
+          combined.push(recipe);
+        }
       }
     }
     return combined;
   }
 
-  const key = ['search', language, [...without].sort().join('+'), limit, normalize(query)].join(':');
+  const key = ['search', language, [...without].sort().join('+'), limit, normalize(cleanQuery)].join(':');
   return cached(key, async () => {
-    const data = await request('search', { query, limit, language, without: without.join(',') });
+    const data = await request('search', { query: cleanQuery, limit, language, without: without.join(',') });
     return (data.results || []).map(remember);
   });
 }

@@ -10,6 +10,7 @@ import Planner from './components/Planner';
 import Shopping from './components/Shopping';
 import RecipeModal from './components/RecipeModal';
 import { Icon } from './components/Icons';
+import isologoUrl from './img/isologo_cocinaya.svg';
 
 const TABS = [
   { id: 'home', label: 'Inicio', icon: 'home' },
@@ -116,9 +117,21 @@ export default function App() {
     <div className="app">
       <header className="top">
         <div className="brand">
-          <button type="button" className="brand-btn" onClick={() => goTo('home')}>
-            <span className="brand-mark" aria-hidden="true">CY</span>
-            <h1>Cocina Ya</h1>
+          <button
+            type="button"
+            className="brand-btn"
+            onClick={() => goTo('home')}
+            aria-label="Ir al inicio de CocinaYa"
+          >
+            <img
+              src={isologoUrl}
+              alt=""
+              className="brand-isologo"
+              width="36"
+              height="34"
+              aria-hidden="true"
+            />
+            <h1>CocinaYa</h1>
           </button>
         </div>
 
@@ -234,6 +247,7 @@ export default function App() {
             ingredients={ingredients.data}
             plan={plan.data}
             shopping={shopping.data}
+            suggestion={suggestion}
             loading={ingredients.loading || plan.loading || shopping.loading}
             onOpenRecipe={setOpenRecipe}
             go={goTo}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useToast } from '../context/ToastContext';
@@ -159,6 +159,7 @@ export default function RecipeFinder({ uid, ingredients = [], plan = [], onOpenR
   const [without, setWithout] = useState([]);
   const [recipes, setRecipes] = useState(null);
   const [loading, setLoading] = useState(false);
+  const searchSeqRef = useRef(0);
   const planByKey = Object.fromEntries(plan.map((p) => [p.id, p]));
 
   const toggleAvoid = (a) =>
@@ -168,6 +169,7 @@ export default function RecipeFinder({ uid, ingredients = [], plan = [], onOpenR
     if (mode === 'search' && query.trim().length < 2) {
       return notify('Escribí al menos 2 letras para buscar una receta.', 'error');
     }
+    const currentSeq = ++searchSeqRef.current;
     setLoading(true);
     try {
       // Sin selector de idioma manual: consultamos todas las recetas disponibles (ES + EN unificadas y cacheadas)
@@ -185,15 +187,32 @@ export default function RecipeFinder({ uid, ingredients = [], plan = [], onOpenR
       } else {
         list = await popularRecipes(base);
       }
+
+      // Evita condiciones de carrera si el usuario disparó otra búsqueda mientras esta procesaba
+      if (currentSeq !== searchSeqRef.current) return;
+
       setRecipes(list);
       if (!list.length) {
-        notify('No encontramos recetas con esos filtros. Probá ajustando los ingredientes o alérgenos.', 'error');
+        if (mode === 'search') {
+          if (without.length > 0) {
+            notify(`No encontramos recetas para "${query.trim()}" con los alérgenos filtrados. Probá ajustando los filtros.`, 'error');
+          } else {
+            notify(`No encontramos recetas con el término "${query.trim()}". Probá con palabras como pasta, pollo, ensalada o pizza.`, 'error');
+          }
+        } else if (mode === 'pantry') {
+          notify('No encontramos recetas con esos filtros. Probá ajustando la tolerancia de ingredientes o alérgenos.', 'error');
+        } else {
+          notify('No se encontraron recetas populares en este momento.', 'error');
+        }
       }
     } catch (err) {
+      if (currentSeq !== searchSeqRef.current) return;
       console.error(err);
       notify(err.userMessage || 'No se pudieron buscar recetas. Intentá de nuevo en un momento.', 'error');
     } finally {
-      setLoading(false);
+      if (currentSeq === searchSeqRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -311,7 +330,19 @@ export default function RecipeFinder({ uid, ingredients = [], plan = [], onOpenR
         </div>
       )}
 
-      {!loading && recipes && (
+      {!loading && recipes && recipes.length === 0 && (
+        <div className="panel empty-state">
+          <EmptyGraphic type="meal" />
+          <h3>No encontramos recetas</h3>
+          <p>
+            {mode === 'search'
+              ? `No encontramos resultados para "${query.trim()}". Probá con términos como fideos, pasta, pollo, pizza o ensalada, o desactivá los filtros de alérgenos.`
+              : 'Probá aumentando la tolerancia de ingredientes faltantes o quitando alérgenos para encontrar más opciones.'}
+          </p>
+        </div>
+      )}
+
+      {!loading && recipes && recipes.length > 0 && (
         <div className="recipe-grid">
           {recipes.map((r) => (
             <RecipeCard
