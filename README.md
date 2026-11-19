@@ -1,4 +1,13 @@
 # Cocina Ya
+Cocina Ya es una aplicación web que ayuda a organizar las comidas cotidianas. Permite administrar los ingredientes disponibles en casa, descubrir recetas, planificar las comidas de la semana y organizar una lista de compras.
+
+## Funcionalidades principales
+- Mi heladera: registrar y administrar ingredientes.
+- Recetas: buscar y descubrir nuevas opciones de comidas.
+- Planificación semanal: organizar recetas por día y horario.
+- Lista de compras: agregar y administrar productos necesarios.
+- Sugerencias: encontrar recetas a partir de los ingredientes disponibles.
+
 SPA en React + Vite con Firebase (Anonymous Auth + Cloud Firestore), desplegada en Vercel.
 Permite cargar los ingredientes de la heladera, buscar recetas (TheMealDB) y planificar la semana.
 
