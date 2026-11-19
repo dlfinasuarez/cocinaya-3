@@ -38,15 +38,17 @@ export default function Dashboard({
 
   // Mi heladera: ordenar por vencimiento y tomar los 3 primeros
   const sortedIngredients = [...ingredients].sort(byExpiry);
-  const topExpiring = sortedIngredients.slice(0, 3);
+  const topExpiring = sortedIngredients.slice(0, 2);
   const hasExpiringAlert = ingredients.some(isExpiring);
 
-  // La comida de hoy
-  const lunchKey = slotKey(todayIndex, 'almuerzo');
-  const dinnerKey = slotKey(todayIndex, 'cena');
-  const lunchSlot = plan.find((p) => p.id === lunchKey || (p.day === todayIndex && p.shift === 'almuerzo'));
-  const dinnerSlot = plan.find((p) => p.id === dinnerKey || (p.day === todayIndex && p.shift === 'cena'));
-  const hasMealToday = Boolean(lunchSlot || dinnerSlot);
+  // La comida de hoy (00:00 a 16:59 -> Almuerzo | 17:00 a 23:59 -> Cena)
+  const currentHour = new Date().getHours();
+  const activeShift = currentHour < 17 ? 'almuerzo' : 'cena';
+  const activeShiftLabel = activeShift === 'almuerzo' ? 'Almuerzo' : 'Cena';
+  const activeSlotKey = slotKey(todayIndex, activeShift);
+  const currentMealSlot = plan.find(
+    (p) => p.id === activeSlotKey || (p.day === todayIndex && p.shift === activeShift)
+  );
 
   // Lista de compras
   const pendingShopping = shopping.filter((i) => !i.done);
@@ -219,7 +221,7 @@ export default function Dashboard({
             </div>
           </article>
 
-          {/* MÓDULO 2: COMIDA DEL DÍA */}
+          {/* MÓDULO 2: COMIDA DEL DÍA (Único bloque según franja horaria) */}
           <article className="dash-card-mod mod-meal" aria-labelledby="mod-meal-title">
             <div className="mod-head">
               <div className="mod-title-group">
@@ -239,102 +241,60 @@ export default function Dashboard({
             </div>
 
             <div className="mod-body">
-              {!hasMealToday ? (
-                <div className="mod-empty-state">
-                  <p className="mod-empty-text">Sin comidas planificadas para hoy.</p>
-                  <button
-                    type="button"
-                    className="btn primary small mod-action-btn"
-                    onClick={() => go('recipes')}
-                  >
-                    <Icon name="plus" size={14} /> Elegir qué cocinar
-                  </button>
+              <div className={`mod-meal-entry ${currentMealSlot ? (currentMealSlot.done ? 'is-cooked' : 'is-ready') : 'is-empty'}`}>
+                <div className="meal-entry-top">
+                  <span className="meal-entry-shift">{activeShiftLabel}</span>
+                  {currentMealSlot && (
+                    <label className="checkbox-custom mini-check">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(currentMealSlot.done)}
+                        onChange={() => toggleMealDone(currentMealSlot)}
+                        aria-label={`Marcar ${activeShift} como cocinada`}
+                      />
+                      <span className="check-box" aria-hidden="true">
+                        <Icon name="check" size={10} />
+                      </span>
+                      <span className="check-text">{currentMealSlot.done ? 'Cocinada' : 'Lista'}</span>
+                    </label>
+                  )}
                 </div>
-              ) : (
-                <div className="mod-meals-stack">
-                  {/* Almuerzo */}
-                  <div className={`mod-meal-entry ${lunchSlot ? (lunchSlot.done ? 'is-cooked' : 'is-ready') : 'is-empty'}`}>
-                    <div className="meal-entry-top">
-                      <span className="meal-entry-shift">Almuerzo</span>
-                      {lunchSlot && (
-                        <label className="checkbox-custom mini-check">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(lunchSlot.done)}
-                            onChange={() => toggleMealDone(lunchSlot)}
-                            aria-label="Marcar almuerzo como cocinado"
-                          />
-                          <span className="check-box" aria-hidden="true">
-                            <Icon name="check" size={10} />
-                          </span>
-                          <span className="check-text">{lunchSlot.done ? 'Cocinada' : 'Lista'}</span>
-                        </label>
-                      )}
-                    </div>
-                    {lunchSlot ? (
-                      <div
-                        className="meal-entry-main"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => onOpenRecipe({ id: lunchSlot.recipeId, title: lunchSlot.title, thumb: lunchSlot.thumb })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            onOpenRecipe({ id: lunchSlot.recipeId, title: lunchSlot.title, thumb: lunchSlot.thumb });
-                          }
-                        }}
-                      >
-                        <RecipeImg src={lunchSlot.thumb} alt={lunchSlot.title} className="mod-meal-thumb" />
-                        <span className="meal-entry-title">{lunchSlot.title}</span>
-                      </div>
-                    ) : (
-                      <button type="button" className="mod-slot-link" onClick={() => go('recipes')}>
-                        + Asignar almuerzo
-                      </button>
-                    )}
-                  </div>
 
-                  {/* Cena */}
-                  <div className={`mod-meal-entry ${dinnerSlot ? (dinnerSlot.done ? 'is-cooked' : 'is-ready') : 'is-empty'}`}>
-                    <div className="meal-entry-top">
-                      <span className="meal-entry-shift">Cena</span>
-                      {dinnerSlot && (
-                        <label className="checkbox-custom mini-check">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(dinnerSlot.done)}
-                            onChange={() => toggleMealDone(dinnerSlot)}
-                            aria-label="Marcar cena como cocinada"
-                          />
-                          <span className="check-box" aria-hidden="true">
-                            <Icon name="check" size={10} />
-                          </span>
-                          <span className="check-text">{dinnerSlot.done ? 'Cocinada' : 'Lista'}</span>
-                        </label>
-                      )}
-                    </div>
-                    {dinnerSlot ? (
-                      <div
-                        className="meal-entry-main"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => onOpenRecipe({ id: dinnerSlot.recipeId, title: dinnerSlot.title, thumb: dinnerSlot.thumb })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            onOpenRecipe({ id: dinnerSlot.recipeId, title: dinnerSlot.title, thumb: dinnerSlot.thumb });
-                          }
-                        }}
-                      >
-                        <RecipeImg src={dinnerSlot.thumb} alt={dinnerSlot.title} className="mod-meal-thumb" />
-                        <span className="meal-entry-title">{dinnerSlot.title}</span>
-                      </div>
-                    ) : (
-                      <button type="button" className="mod-slot-link" onClick={() => go('recipes')}>
-                        + Asignar cena
-                      </button>
-                    )}
+                {currentMealSlot ? (
+                  <div
+                    className={`meal-entry-main ${currentMealSlot.recipeId ? 'is-clickable' : ''}`}
+                    role={currentMealSlot.recipeId ? 'button' : undefined}
+                    tabIndex={currentMealSlot.recipeId ? 0 : undefined}
+                    title={currentMealSlot.title}
+                    onClick={() => {
+                      if (currentMealSlot.recipeId) {
+                        onOpenRecipe({
+                          id: currentMealSlot.recipeId,
+                          title: currentMealSlot.title,
+                          thumb: currentMealSlot.thumb,
+                        });
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (currentMealSlot.recipeId && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        onOpenRecipe({
+                          id: currentMealSlot.recipeId,
+                          title: currentMealSlot.title,
+                          thumb: currentMealSlot.thumb,
+                        });
+                      }
+                    }}
+                  >
+                    <RecipeImg src={currentMealSlot.thumb} alt={currentMealSlot.title} className="mod-meal-thumb" />
+                    <span className="meal-entry-title">{currentMealSlot.title}</span>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <button type="button" className="mod-slot-link" onClick={() => go('recipes')}>
+                    + Asignar {activeShift}
+                  </button>
+                )}
+              </div>
             </div>
           </article>
 
@@ -359,20 +319,17 @@ export default function Dashboard({
 
             <div className="mod-body">
               <div className="mod-shop-content">
-                <p className="mod-count-line">
-                  {pendingCount === 0
-                    ? 'No tenés productos pendientes.'
-                    : pendingCount === 1
-                    ? '1 producto pendiente para comprar.'
-                    : `${pendingCount} productos pendientes para comprar.`}
-                </p>
+                {pendingCount === 0 && (
+                  <p className="mod-count-line">No tenés productos pendientes.</p>
+                )}
 
                 {topPending.length > 0 && !showQuickShop && (
-                  <ul className="mod-shop-preview-list" aria-label="Productos pendientes">
-                    {topPending.map((item) => (
-                      <li key={item.id} className="mod-shop-preview-item">
-                        <Icon name="cart" size={12} />
-                        <span>{item.name}</span>
+                  <ul className="mod-mini-list mod-shop-list" aria-label="Productos pendientes">
+                    {topPending.slice(0, 2).map((item) => (
+                      <li key={item.id} className="mod-mini-item mod-shop-item">
+                        <span className="item-name-text" title={item.name}>
+                          {item.name}
+                        </span>
                       </li>
                     ))}
                   </ul>

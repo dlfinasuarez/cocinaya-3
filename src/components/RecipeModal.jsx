@@ -41,7 +41,10 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
   const [rescaling, setRescaling] = useState(false);
   const [subs, setSubs] = useState(null);
   const [loadingSubs, setLoadingSubs] = useState(false);
-  const recetaBase = details || recipe;
+  // Si la receta viene del Planner, es un objeto parcial (solo id, title, thumb).
+  // No la usamos como base hasta que getRecipeDetails traiga la info completa.
+  const isFullRecipe = Boolean(recipe?.steps && recipe?.ingredients);
+  const recetaBase = details || (isFullRecipe ? recipe : null);
 
   const recetaSugerida = useTraduccionReceta(recetaBase);
   const receta = recetaSugerida || recetaBase;
@@ -119,7 +122,7 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
 
   const d = receta;
   const diets = d ? Object.keys(DIET_LABELS).filter((k) => d.dietary?.[k] === true) : [];
-  const times = d ? [['Preparación', d.times.prep], ['Cocción', d.times.cook], ['Total', d.times.total]].filter(([, v]) => v) : [];
+  const times = d ? [['Preparación', d.times?.prep], ['Cocción', d.times?.cook], ['Total', d.times?.total]].filter(([, v]) => v) : [];
 
   return (
     <div className="modal-backdrop" onClick={onClose} role="presentation">
@@ -127,7 +130,7 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label={receta.title}
+        aria-label={receta?.title || recipe?.title || 'Receta'}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bottomsheet-handle" aria-hidden="true" />
@@ -135,10 +138,10 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
           <Icon name="close" size={20} />
         </button>
 
-        <RecipeImg className="modal-img" src={d?.image || recipe.image || recipe.thumb} alt={receta.title} />
+        <RecipeImg className="modal-img" src={d?.image || recipe?.image || recipe?.thumb} alt={receta?.title || recipe?.title || ''} />
 
         <div className="modal-body">
-          <h2 className="modal-recipe-title">{receta.title}</h2>
+          <h2 className="modal-recipe-title">{receta?.title || recipe?.title || 'Cargando receta…'}</h2>
 
           {error && <p className="field-error" role="alert">{error}</p>}
           {!d && !error && (
@@ -166,7 +169,7 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
                     {d.rating.count ? ` (${d.rating.count})` : ''}
                   </span>
                 ) : null}
-                {[...d.cuisines, ...d.courses].map((c) => (
+                {[...(d.cuisines || []), ...(d.courses || [])].map((c) => (
                   <span key={c} className="pill soft">{c}</span>
                 ))}
                 {diets.map((k) => (
@@ -174,13 +177,13 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
                 ))}
               </div>
 
-              {d.allergens.length > 0 && (
+              {d.allergens?.length > 0 && (
                 <p className="allergen-line">
                   Contiene: {d.allergens.map((a) => ALLERGEN_LABELS[a] || a).join(', ')}. Información orientativa: verificá siempre las etiquetas.
                 </p>
               )}
 
-              {d.gallery.length > 0 && (
+              {d.gallery?.length > 0 && (
                 <div className="gallery">
                   {d.gallery.map((g) => (
                     <RecipeImg key={g.url} src={g.url} alt={g.alt} />
@@ -316,7 +319,7 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
                           {s.temperature ? ` 🌡 ${s.temperature.value} °${s.temperature.unit}` : ''}
                         </p>
                       )}
-                      {d.stepImages[s.step] && (
+                      {d.stepImages?.[s.step] && (
                         <RecipeImg className="step-img" src={d.stepImages[s.step]} alt={`Paso ${s.step}`} />
                       )}
                     </li>
@@ -326,7 +329,7 @@ export default function RecipeModal({ recipe, uid, fridge = [], shopping = [], o
 
               <Nutrition n={d.nutrition} />
 
-              {d.notes.length > 0 && (
+              {d.notes?.length > 0 && (
                 <div className="modal-notes-block">
                   <h3>Notas del cocinero</h3>
                   <ul className="notes">{d.notes.map((n, idx) => <li key={idx}>{n}</li>)}</ul>
