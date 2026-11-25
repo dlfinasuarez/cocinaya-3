@@ -9,6 +9,7 @@ import RecipeFinder from './components/RecipeFinder';
 import Planner from './components/Planner';
 import Shopping from './components/Shopping';
 import RecipeModal from './components/RecipeModal';
+import WelcomeScreen from './components/WelcomeScreen';
 import { Icon } from './components/Icons';
 import isologoUrl from './img/isologo_cocinaya.svg';
 
@@ -22,7 +23,17 @@ const TABS = [
 
 export default function App() {
   const notify = useToast();
-  const { user, loading: authLoading, error: authError } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    error: authError,
+    isAnonymous,
+    loginGoogle,
+    loginGuest,
+    linkGoogle,
+    logout,
+  } = useAuth();
+
   const uid = user?.uid;
   const ingredients = useCollection(uid, 'ingredients');
   const plan = useCollection(uid, 'plan');
@@ -33,6 +44,7 @@ export default function App() {
   const [fridgeAutoFocus, setFridgeAutoFocus] = useState(false);
   const [openRecipe, setOpenRecipe] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [linking, setLinking] = useState(false);
 
   const drawerRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -49,6 +61,41 @@ export default function App() {
       setFridgeAutoFocus(false);
     }
   }, []);
+
+  const handleLinkGoogle = async () => {
+    try {
+      setLinking(true);
+      await linkGoogle();
+      notify('¡Tu cuenta se vinculó con Google con éxito! Tus datos se conservan intactos.');
+    } catch (err) {
+      console.error('Error al vincular con Google:', err);
+      if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') {
+        notify(
+          'Esta cuenta de Google ya pertenece a otro usuario registrado. Para no perder tus datos actuales, seguí como invitado, o cerrá sesión e ingresá con Google.',
+          'error'
+        );
+      } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        // Cancelado por el usuario
+      } else if (err.code === 'auth/provider-already-linked') {
+        notify('Esta cuenta ya está vinculada con Google.');
+      } else {
+        notify(err.message || 'No se pudo vincular la cuenta. Intentá más tarde.', 'error');
+      }
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setMenuOpen(false);
+      await logout();
+      notify('Sesión cerrada correctamente.');
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+      notify('No se pudo cerrar la sesión.', 'error');
+    }
+  };
 
   useEffect(() => {
     if (ingredients.error || plan.error || shopping.error) {
@@ -100,18 +147,46 @@ export default function App() {
     };
   }, [menuOpen]);
 
-  if (authLoading) return <div className="boot">Preparando tu cocina…</div>;
+  // Pantalla de carga mientras Firebase verifica si hay sesión previa guardada
+  if (authLoading) {
+    return (
+      <div className="boot">
+        <div className="boot-inner">
+          <img
+            src={isologoUrl}
+            alt=""
+            className="boot-isologo"
+            width="56"
+            height="52"
+          />
+          <p>Preparando tu cocina…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no hay usuario autenticado (ni anónimo ni Google), mostramos la pantalla de bienvenida / login
+  if (!user) {
+    return (
+      <WelcomeScreen
+        onLoginGoogle={loginGoogle}
+        onLoginGuest={loginGuest}
+      />
+    );
+  }
+
   if (authError) {
     return (
       <div className="boot error">
         <h1>No pudimos iniciar sesión</h1>
-        <p>Verificá que Authentication → Anónimo esté habilitado y que las variables de entorno sean correctas.</p>
-        <code>{authError.code}</code>
+        <p>Verificá que Authentication esté habilitado en Firebase y que las credenciales sean correctas.</p>
+        <code>{authError.code || authError.message}</code>
       </div>
     );
   }
 
   const pendingShop = shopping.data.filter((i) => !i.done).length;
+  const userDisplayName = user?.displayName || user?.email?.split('@')[0] || 'Usuario';
 
   return (
     <div className="app">
@@ -154,6 +229,52 @@ export default function App() {
               )}
             </button>
           ))}
+
+          {/* Estado de usuario en Desktop */}
+          <div className="nav-user-desktop">
+            {isAnonymous ? (
+              <div className="user-pill-guest">
+                <span className="user-badge-guest">Invitado</span>
+                <button
+                  type="button"
+                  className="btn-link-link-account"
+                  onClick={handleLinkGoogle}
+                  disabled={linking}
+                  title="Vincular con tu cuenta de Google para no perder tus datos"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.36 24 12 24Z"/>
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+                  </svg>
+                  <span>{linking ? 'Vinculando…' : 'Vincular Google'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="user-pill-auth">
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="" className="user-avatar-img" />
+                ) : (
+                  <span className="user-avatar-initials">
+                    {userDisplayName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="user-name-text" title={user?.email || userDisplayName}>
+                  {userDisplayName}
+                </span>
+                <button
+                  type="button"
+                  className="user-logout-btn"
+                  onClick={handleLogout}
+                  title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Botón hamburguesa en Mobile / Tablet (< 960px) */}
@@ -198,7 +319,14 @@ export default function App() {
       >
         <div className="drawer-head">
           <div className="drawer-title">
-            <span className="drawer-mark">CY</span>
+            <img
+              src={isologoUrl}
+              alt=""
+              className="drawer-isologo"
+              width="32"
+              height="30"
+              aria-hidden="true"
+            />
             <strong>Cocina Ya</strong>
           </div>
           <button
@@ -213,6 +341,50 @@ export default function App() {
           >
             <Icon name="close" size={20} />
           </button>
+        </div>
+
+        {/* Identificación de usuario en el Drawer */}
+        <div className="drawer-user-info">
+          {isAnonymous ? (
+            <div className="drawer-guest-box">
+              <div className="drawer-guest-head">
+                <span className="user-badge-guest">Modo Invitado</span>
+              </div>
+              <p className="drawer-guest-desc">
+                Podés vincular tu cuenta con Google para respaldar tus ingredientes y recetas.
+              </p>
+              <button
+                type="button"
+                className="btn-drawer-link-google"
+                onClick={handleLinkGoogle}
+                disabled={linking}
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.36 24 12 24Z"/>
+                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+                </svg>
+                <span>{linking ? 'Vinculando…' : 'Vincular con Google'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="drawer-auth-box">
+              <div className="drawer-auth-user">
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="" className="drawer-avatar-img" />
+                ) : (
+                  <span className="drawer-avatar-initials">
+                    {userDisplayName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <div className="drawer-user-meta">
+                  <strong className="drawer-user-name">{userDisplayName}</strong>
+                  {user?.email && <span className="drawer-user-email">{user.email}</span>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <nav className="drawer-nav" aria-label="Secciones de la aplicación">
@@ -236,7 +408,16 @@ export default function App() {
         </nav>
 
         <div className="drawer-foot">
-          <p className="drawer-caption">SmartPantry & Planner</p>
+          <div className="drawer-actions">
+            <button
+              type="button"
+              className="drawer-logout-btn"
+              onClick={handleLogout}
+            >
+              {isAnonymous ? 'Salir del modo invitado' : 'Cerrar sesión'}
+            </button>
+          </div>
+          <p className="drawer-caption">Cocina Ya</p>
         </div>
       </aside>
 

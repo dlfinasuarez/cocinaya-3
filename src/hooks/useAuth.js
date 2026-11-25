@@ -1,27 +1,61 @@
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
+import {
+  signInGoogle,
+  signInGuest,
+  linkCurrentWithGoogle,
+  logoutUser,
+  checkRedirectResult,
+} from '../services/auth';
 
-// Si no hay sesión, crea una anónima. Cada navegador obtiene su propio uid.
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Verificar si volvemos de una redirección OAuth
+    checkRedirectResult().catch((e) => setError(e));
+
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        setUser(u);
-        setLoading(false);
-      } else {
-        signInAnonymously(auth).catch((e) => {
-          setError(e);
-          setLoading(false);
-        });
-      }
+      setUser(u);
+      setLoading(false);
     });
+
     return unsub;
   }, []);
 
-  return { user, loading, error };
+  const loginGoogle = async () => {
+    setError(null);
+    return await signInGoogle();
+  };
+
+  const loginGuest = async () => {
+    setError(null);
+    return await signInGuest();
+  };
+
+  const linkGoogle = async () => {
+    setError(null);
+    const updatedUser = await linkCurrentWithGoogle();
+    setUser({ ...updatedUser });
+    return updatedUser;
+  };
+
+  const logout = async () => {
+    setError(null);
+    await logoutUser();
+  };
+
+  return {
+    user,
+    loading,
+    error,
+    isAnonymous: Boolean(user?.isAnonymous),
+    loginGoogle,
+    loginGuest,
+    linkGoogle,
+    logout,
+  };
 }

@@ -36,10 +36,9 @@ export default function Dashboard({
     new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
   );
 
-  // Mi heladera: ordenar por vencimiento y tomar los 3 primeros
+  // Mi heladera: ordenar por vencimiento y tomar los que vencen primero
   const sortedIngredients = [...ingredients].sort(byExpiry);
   const topExpiring = sortedIngredients.slice(0, 2);
-  const hasExpiringAlert = ingredients.some(isExpiring);
 
   // La comida de hoy (00:00 a 16:59 -> Almuerzo | 17:00 a 23:59 -> Cena)
   const currentHour = new Date().getHours();
@@ -191,12 +190,6 @@ export default function Dashboard({
                   <p className="mod-count-line">
                     Tenés <strong>{ingredients.length}</strong> {ingredients.length === 1 ? 'ingrediente' : 'ingredientes'}.
                   </p>
-                  {hasExpiringAlert && (
-                    <div className="mod-micro-alert" role="status">
-                      <Icon name="alert" size={13} />
-                      <span>Ingredientes por vencer</span>
-                    </div>
-                  )}
                   <ul className="mod-mini-list" aria-label="Ingredientes que vencen primero">
                     {topExpiring.map((item) => {
                       const info = expiryInfo(item.expiresAt);
