@@ -187,9 +187,6 @@ export default function Dashboard({
                 </div>
               ) : (
                 <div className="mod-fridge-content">
-                  <p className="mod-count-line">
-                    Tenés <strong>{ingredients.length}</strong> {ingredients.length === 1 ? 'ingrediente' : 'ingredientes'}.
-                  </p>
                   <ul className="mod-mini-list" aria-label="Ingredientes que vencen primero">
                     {topExpiring.map((item) => {
                       const info = expiryInfo(item.expiresAt);
