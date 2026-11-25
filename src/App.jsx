@@ -45,6 +45,7 @@ export default function App() {
   const [openRecipe, setOpenRecipe] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const drawerRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -88,6 +89,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      setShowLogoutConfirm(false);
       setMenuOpen(false);
       await logout();
       notify('Sesión cerrada correctamente.');
@@ -96,6 +98,18 @@ export default function App() {
       notify('No se pudo cerrar la sesión.', 'error');
     }
   };
+
+  // Cierre del modal de confirmación con Escape
+  useEffect(() => {
+    if (!showLogoutConfirm) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowLogoutConfirm(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showLogoutConfirm]);
 
   useEffect(() => {
     if (ingredients.error || plan.error || shopping.error) {
@@ -250,6 +264,15 @@ export default function App() {
                   </svg>
                   <span>{linking ? 'Vinculando…' : 'Vincular Google'}</span>
                 </button>
+                <button
+                  type="button"
+                  className="user-logout-btn"
+                  onClick={() => setShowLogoutConfirm(true)}
+                  title="Cerrar sesión de invitado"
+                  aria-label="Cerrar sesión"
+                >
+                  <Icon name="close" size={14} />
+                </button>
               </div>
             ) : (
               <div className="user-pill-auth">
@@ -266,7 +289,7 @@ export default function App() {
                 <button
                   type="button"
                   className="user-logout-btn"
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutConfirm(true)}
                   title="Cerrar sesión"
                   aria-label="Cerrar sesión"
                 >
@@ -412,7 +435,10 @@ export default function App() {
             <button
               type="button"
               className="drawer-logout-btn"
-              onClick={handleLogout}
+              onClick={() => {
+                setMenuOpen(false);
+                setShowLogoutConfirm(true);
+              }}
             >
               {isAnonymous ? 'Salir del modo invitado' : 'Cerrar sesión'}
             </button>
@@ -478,6 +504,51 @@ export default function App() {
           shopping={shopping.data}
           onClose={closeRecipe}
         />
+      )}
+
+      {/* Modal de confirmación para cerrar sesión */}
+      {showLogoutConfirm && (
+        <div
+          className="modal-backdrop confirm-backdrop"
+          onClick={() => setShowLogoutConfirm(false)}
+          role="presentation"
+        >
+          <div
+            className="confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-logout-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="confirm-icon-wrap" aria-hidden="true">
+              <Icon name="alert" size={24} />
+            </div>
+            <h3 id="confirm-logout-title" className="confirm-title">
+              ¿Estás seguro de que querés cerrar sesión?
+            </h3>
+            <p className="confirm-desc">
+              {isAnonymous
+                ? 'Tus datos guardados en este dispositivo se conservarán, pero vas a volver a la pantalla de bienvenida.'
+                : 'Tu sesión se cerrará de forma segura y podrás volver a ingresar cuando quieras.'}
+            </p>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="btn ghost confirm-btn-cancel"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn primary confirm-btn-confirm"
+                onClick={handleLogout}
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

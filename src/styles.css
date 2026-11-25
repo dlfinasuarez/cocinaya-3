@@ -1140,7 +1140,18 @@ main {
 }
 
 /* Módulo 2: Comida del día */
-.mod-meal .mod-body,
+.dash-card-mod.mod-meal {
+  padding: 16px 18px 22px;
+}
+
+.mod-meal .mod-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
 .mod-meal-entry,
 .meal-entry-main {
   min-width: 0;
@@ -2433,6 +2444,82 @@ main {
   margin: 10px auto 4px;
 }
 
+/* Modal de confirmación de cierre de sesión */
+.confirm-backdrop {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px;
+  z-index: 75;
+}
+
+.confirm-modal {
+  position: relative;
+  background: var(--card);
+  width: 100%;
+  max-width: 420px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--bordo);
+  box-shadow: var(--shadow-modal);
+  padding: 28px 24px 22px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: slideUp 160ms ease-out;
+}
+
+.confirm-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--bordo);
+  border: 1px solid var(--gold-line);
+  display: grid;
+  place-items: center;
+  margin-bottom: 2px;
+}
+
+.confirm-title {
+  font-family: 'Comica', 'Poppins', sans-serif;
+  font-size: 1.25rem;
+  color: var(--bordo);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.confirm-desc {
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.confirm-btn-cancel {
+  flex: 1;
+  min-height: 42px;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.confirm-btn-confirm {
+  flex: 1;
+  min-height: 42px;
+  background: var(--bordo);
+  color: #FFFFFF;
+  border-color: var(--bordo);
+}
+
 .modal-close {
   position: sticky;
   top: 10px;
@@ -3327,6 +3414,10 @@ main {
 
   .dash-card-mod {
     padding: 14px 14px;
+  }
+
+  .dash-card-mod.mod-meal {
+    padding: 14px 14px 18px;
   }
 
   .hero-media-wrap {
